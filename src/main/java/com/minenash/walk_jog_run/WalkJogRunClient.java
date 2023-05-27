@@ -47,6 +47,8 @@ public class WalkJogRunClient implements ClientModInitializer {
     private static final Identifier SPRINTING_FILL_TEXTURE = WalkJogRun.id("textures/gui/sprinting_fill.png");
     private static final Identifier HUNGER_STAMINA_TEXTURE = WalkJogRun.id("textures/gui/hunger_stamina.png");
 
+    private static final Identifier XP_STAMINA_TEXTURE = WalkJogRun.id("textures/gui/stamina_bar.png");
+
     private static final MinecraftClient client = MinecraftClient.getInstance();
 
     public static int[] hungerBarStaminaYValues = new int[10];
@@ -100,24 +102,46 @@ public class WalkJogRunClient implements ClientModInitializer {
             RenderSystem.setShader(GameRenderer::getPositionTexProgram);
             RenderSystem.enableDepthTest();
 
-            RenderSystem.setShaderTexture(0, isSprinting() ? SPRINTING_TEXTURE : isStrolling ? STROLLING_TEXTURE : WALKING_TEXTURE);
-            DrawableHelper.drawTexture(matrix, x, y, size, size, 0, 0, 80, 80, 80, 80);
+            //RenderSystem.setShaderTexture(0, isSprinting() ? SPRINTING_TEXTURE : isStrolling ? STROLLING_TEXTURE : WALKING_TEXTURE);
+            //DrawableHelper.drawTexture(matrix, x, y, size, size, 0, 0, 80, 80, 80, 80);
 
             if (stamina < max_stamina && !client.player.isCreative()) {
-                if (ClientConfig.showStaminaInIcon) {
+                //System.out.println(stamina + ", " + max_stamina);
+                /*if (ClientConfig.showStaminaInIcon) {
                     RenderSystem.setShaderTexture(0, isSprinting() ? SPRINTING_FILL_TEXTURE : isStrolling ? STROLLING_FILL_TEXTURE : WALKING_FILL_TEXTURE);
 
                     int height = size - (int) (1F * size * stamina / max_stamina);
                     DrawableHelper.drawTexture(matrix, x, y, size, height, 0, 0, 80, (int) (80F * height / size), 80, 80);
-                }
+                }*/
 
-                if (ClientConfig.showStaminaInHungerBar)
-                    renderHungerBarStamina(matrix);
+                renderXPBarStamina(matrix, max_stamina);
+                //if (ClientConfig.showStaminaInHungerBar)
+                    //renderHungerBarStamina(matrix);
             }
             matrix.pop();
 
         });
 
+    }
+
+    private void renderXPBarStamina(MatrixStack matrix, int max_stamina) {
+        RenderSystem.enableBlend();
+        RenderSystem.setShaderTexture(0, XP_STAMINA_TEXTURE);
+        //RenderSystem.setShaderColor(hungerBarStaminaColor[0], hungerBarStaminaColor[1], hungerBarStaminaColor[2], 1F);
+
+
+        int x = client.getWindow().getScaledWidth() / 2 - 91;
+        int l = client.getWindow().getScaledHeight() - 32 + 5;
+
+        int remainder = 20 - client.player.getHungerManager().getFoodLevel();
+        int width2 = (int) (1F * 182 / 20 * remainder);
+        int width = (int) (1F * (182 - width2) * stamina / max_stamina);
+        // background
+        DrawableHelper.drawTexture(matrix, x, l, 0, 0, 182, 3);
+        // stamina bar fill
+        DrawableHelper.drawTexture(matrix, x, l, 0, 3, width, 3);
+        // disabled area fill (when player is hungry)
+        DrawableHelper.drawTexture(matrix, (182 - width2) + x, l, 182 - width2, 6, width2, 3);
     }
 
     private void renderHungerBarStamina(MatrixStack matrix) {
