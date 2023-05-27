@@ -33,16 +33,10 @@ import java.util.UUID;
 
 public class WalkJogRun implements ModInitializer {
 
-	public static final Logger LOGGER = LoggerFactory.getLogger("walk-jog-run");
-
 	private static final UUID BASE_SPEED_MODIFIER_ID = UUID.fromString("662A6B8D-DA3E-4C1C-8813-96EA6097278C");
 	private static EntityAttributeModifier BASE_SPEED_MODIFIER;
 
-	private static final UUID STROLLING_SPEED_MODIFIER_ID = UUID.fromString("662A6B8D-DA3E-4C1C-8813-96EA6097278E");
-	private static EntityAttributeModifier STROLLING_SPEED_MODIFIER;
-	public static final Identifier STROLL_ONE_CM = id("stroll_one_cm");
 
-	public static final Map<PlayerEntity, Boolean> strolling = new HashMap<>();
 	public static final Map<PlayerEntity, Integer> stamina = new HashMap<>();
 
 	@Override
@@ -51,29 +45,6 @@ public class WalkJogRun implements ModInitializer {
 		ServerConfig.read();
 		updateModifiers();
 
-
-		Registry.register(Registries.CUSTOM_STAT, "stroll_one_cm", STROLL_ONE_CM);
-		Stats.CUSTOM.getOrCreateStat(STROLL_ONE_CM, StatFormatter.DISTANCE);
-
-
-
-		ServerPlayNetworking.registerGlobalReceiver( id("strolling"), (server, player, handler, buf, responseSender) -> {
-			EntityAttributeInstance movement = player.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED);
-			boolean strollingP = buf.readBoolean();
-			strolling.put(player, strollingP);
-
-			if (strollingP) {
-				movement.addTemporaryModifier(STROLLING_SPEED_MODIFIER);
-//				player.sendMessage(Text.literal("Walking (Strolling) Speed"), true);
-			}
-			else {
-				movement.removeModifier(STROLLING_SPEED_MODIFIER);
-
-//				if (!player.isSprinting())
-//					player.sendMessage(Text.literal("Jogging (Normal) Speed"), true);
-			}
-
-		});
 
 		ServerTickEvents.START_SERVER_TICK.register(id("stamina"), server -> {
 			for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
@@ -95,7 +66,7 @@ public class WalkJogRun implements ModInitializer {
 				if (player.isSprinting() && !player.isCreative())
 					player_stamina -= ServerConfig.STAMINA_DEPLETION_PER_TICK;
 				else
-					player_stamina += strolling.getOrDefault(player, false) ? ServerConfig.STAMINA_RECOVERY_STROLLING : ServerConfig.STAMINA_RECOVERY_WALKING;
+					player_stamina += ServerConfig.STAMINA_RECOVERY_WALKING;
 
 				if (player_stamina < 0) {
 					player.setSprinting(false);
@@ -133,14 +104,11 @@ public class WalkJogRun implements ModInitializer {
 
 	public static void updateModifiers() {
 		LivingEntityAccessor.setSPRINTING_SPEED_BOOST(new EntityAttributeModifier(LivingEntityAccessor.getSPRINTING_SPEED_BOOST_ID(), "Sprinting speed boost", ServerConfig.SPRINTING_SPEED_MODIFIER, EntityAttributeModifier.Operation.MULTIPLY_TOTAL));
-
-		STROLLING_SPEED_MODIFIER = new EntityAttributeModifier(STROLLING_SPEED_MODIFIER_ID, "WalkJogRun: Strolling speed modification",
-				ServerConfig.STROLLING_SPEED_MODIFIER, EntityAttributeModifier.Operation.MULTIPLY_TOTAL);
 		BASE_SPEED_MODIFIER = new EntityAttributeModifier(BASE_SPEED_MODIFIER_ID, "WalkJogRun: Base speed modification",
 				ServerConfig.BASE_WALKING_SPEED_MODIFIER, EntityAttributeModifier.Operation.MULTIPLY_BASE);
 	}
 
-	private void setStamina(ServerPlayerEntity player, int staminaP) {
+	private static void setStamina(ServerPlayerEntity player, int staminaP) {
 		stamina.put(player, staminaP);
 
 		PacketByteBuf buf = PacketByteBufs.create();

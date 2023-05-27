@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 @Mixin(InGameHud.class)
 public class InGameHudMixin {
+    /*
 
     private static final int OFFSET_LEFT = -18;
     private static final int OFFSET_RIGHT = 16;
@@ -29,11 +30,6 @@ public class InGameHudMixin {
     @ModifyArg(method = "renderHotbar", index = 1, at = @At(value = "INVOKE", ordinal = 5, target = "Lnet/minecraft/client/gui/hud/InGameHud;drawTexture(Lnet/minecraft/client/util/math/MatrixStack;IIIIII)V"))
     public int walkJogRun$changeHotbarAttackIndicatorX2(int old) {
         return old + (MinecraftClient.getInstance().player.getMainArm() == Arm.RIGHT ? OFFSET_RIGHT : OFFSET_LEFT);
-    }
-
-    @Inject(method = "renderStatusBars", locals = LocalCapture.CAPTURE_FAILHARD, at = @At(value = "INVOKE", ordinal = 3, target = "Lnet/minecraft/client/gui/hud/InGameHud;drawTexture(Lnet/minecraft/client/util/math/MatrixStack;IIIIII)V"))
-    public void walkJogRun$getHungerBarYValues(MatrixStack matrices, CallbackInfo callback, PlayerEntity playerEntity, int i, boolean bl, long l, int j, HungerManager hungerManager, int k, int m, int n, int o, float f, int p, int q, int r, int s, int t, int u, int v, LivingEntity livingEntity, int x, int y, int z, int aa, int ab, int ac) {
-        WalkJogRunClient.hungerBarStaminaYValues[y] = z;
-    }
+    }*/
 
 }

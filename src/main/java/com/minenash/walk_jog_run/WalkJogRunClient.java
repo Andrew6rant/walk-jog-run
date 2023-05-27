@@ -25,40 +25,19 @@ import java.awt.*;
 
 public class WalkJogRunClient implements ClientModInitializer {
 
-    public static final KeyBinding STROLLING_KEYBIND = keybind("strolling", GLFW.GLFW_KEY_LEFT_ALT);
-
-    private static KeyBinding keybind(String key, int defaultKey) {
-        KeyBinding binding = new KeyBinding("walkjogrun.keybind." + key, InputUtil.Type.KEYSYM, defaultKey, KeyBinding.MOVEMENT_CATEGORY);
-        KeyBindingHelper.registerKeyBinding(binding);
-        return binding;
-    }
-
-    public static boolean isStrolling = false;
     boolean wasSprinting = false;
-    boolean wasStrolling = false;
 
     public static int stamina = 200;
-
-    private static final Identifier STROLLING_TEXTURE = WalkJogRun.id("textures/gui/strolling.png");
-    private static final Identifier WALKING_TEXTURE = WalkJogRun.id("textures/gui/walking.png");
-    private static final Identifier SPRINTING_TEXTURE = WalkJogRun.id("textures/gui/sprinting.png");
-    private static final Identifier STROLLING_FILL_TEXTURE = WalkJogRun.id("textures/gui/strolling_fill.png");
-    private static final Identifier WALKING_FILL_TEXTURE = WalkJogRun.id("textures/gui/walking_fill.png");
-    private static final Identifier SPRINTING_FILL_TEXTURE = WalkJogRun.id("textures/gui/sprinting_fill.png");
-    private static final Identifier HUNGER_STAMINA_TEXTURE = WalkJogRun.id("textures/gui/hunger_stamina.png");
-
     private static final Identifier XP_STAMINA_TEXTURE = WalkJogRun.id("textures/gui/stamina_bar.png");
 
     private static final MinecraftClient client = MinecraftClient.getInstance();
-
-    public static int[] hungerBarStaminaYValues = new int[10];
-    public static float[] hungerBarStaminaColor = Color.decode(ClientConfig.hungerBarStaminaColor).getRGBComponents(null);
 
     @Override
     public void onInitializeClient() {
 
         ClientConfig.init("walk-jog-run-client", ClientConfig.class);
 
+        /*
         ClientTickEvents.END_WORLD_TICK.register(client -> {
 
             if (isSprinting() != wasSprinting) {
@@ -76,7 +55,7 @@ public class WalkJogRunClient implements ClientModInitializer {
 
             while (!isSprinting() && STROLLING_KEYBIND.wasPressed())
                 setStrolling(isStrolling = !isStrolling);
-        });
+        }); */
 
         ClientPlayNetworking.registerGlobalReceiver(WalkJogRun.id("stamina"), (client1, handler, buf, responseSender) -> {
             stamina = buf.readInt();
@@ -93,33 +72,16 @@ public class WalkJogRunClient implements ClientModInitializer {
 
         HudRenderCallback.EVENT.register( WalkJogRun.id("icon_render"), (matrix, tickDelta) -> {
             matrix.push();
-
-            int y = getIconY();
-            int x = getIconX();
-            int size = ClientConfig.iconPosition == ClientConfig.IconPosition.CROSSHAIR ? 10 : 16;
             int max_stamina = client.player.getHungerManager().getFoodLevel() * ServerConfig.STAMINA_PER_FOOD_LEVEL;
 
             RenderSystem.setShader(GameRenderer::getPositionTexProgram);
             RenderSystem.enableDepthTest();
-
-            //RenderSystem.setShaderTexture(0, isSprinting() ? SPRINTING_TEXTURE : isStrolling ? STROLLING_TEXTURE : WALKING_TEXTURE);
-            //DrawableHelper.drawTexture(matrix, x, y, size, size, 0, 0, 80, 80, 80, 80);
-
-            if (stamina < max_stamina && !client.player.isCreative()) {
-                //System.out.println(stamina + ", " + max_stamina);
-                /*if (ClientConfig.showStaminaInIcon) {
-                    RenderSystem.setShaderTexture(0, isSprinting() ? SPRINTING_FILL_TEXTURE : isStrolling ? STROLLING_FILL_TEXTURE : WALKING_FILL_TEXTURE);
-
-                    int height = size - (int) (1F * size * stamina / max_stamina);
-                    DrawableHelper.drawTexture(matrix, x, y, size, height, 0, 0, 80, (int) (80F * height / size), 80, 80);
-                }*/
-
+            // stamina < max_stamina &&
+            if (!client.player.isCreative()) {
                 renderXPBarStamina(matrix, max_stamina);
-                //if (ClientConfig.showStaminaInHungerBar)
-                    //renderHungerBarStamina(matrix);
             }
-            matrix.pop();
 
+            matrix.pop();
         });
 
     }
@@ -127,15 +89,13 @@ public class WalkJogRunClient implements ClientModInitializer {
     private void renderXPBarStamina(MatrixStack matrix, int max_stamina) {
         RenderSystem.enableBlend();
         RenderSystem.setShaderTexture(0, XP_STAMINA_TEXTURE);
-        //RenderSystem.setShaderColor(hungerBarStaminaColor[0], hungerBarStaminaColor[1], hungerBarStaminaColor[2], 1F);
-
-
         int x = client.getWindow().getScaledWidth() / 2 - 91;
         int l = client.getWindow().getScaledHeight() - 32 + 5;
 
         int remainder = 20 - client.player.getHungerManager().getFoodLevel();
         int width2 = (int) (1F * 182 / 20 * remainder);
         int width = (int) (1F * (182 - width2) * stamina / max_stamina);
+
         // background
         DrawableHelper.drawTexture(matrix, x, l, 0, 0, 182, 3);
         // stamina bar fill
@@ -144,65 +104,7 @@ public class WalkJogRunClient implements ClientModInitializer {
         DrawableHelper.drawTexture(matrix, (182 - width2) + x, l, 182 - width2, 6, width2, 3);
     }
 
-    private void renderHungerBarStamina(MatrixStack matrix) {
-        RenderSystem.enableBlend();
-        RenderSystem.setShaderTexture(0, HUNGER_STAMINA_TEXTURE);
-        RenderSystem.setShaderColor(hungerBarStaminaColor[0], hungerBarStaminaColor[1], hungerBarStaminaColor[2], 1F);
-
-
-        int x = client.getWindow().getScaledWidth() / 2 + 91 - 9;
-        double s = stamina / 8.888;
-
-        if (ClientConfig.hungerBarColorState == ClientConfig.HungerBarColorState.STAMINA_DEPLETED) {
-            for (int x2 = 0; x2 < 10; ++x2) {
-                if (s <= x2 * 9 + 9) {
-                    int ss = (int) (x2 * 9 + 9 - s);
-                    DrawableHelper.drawTexture(matrix, x - x2 * 8, hungerBarStaminaYValues[x2], 0, 0, ss > 8 ? 9 : ss, 9, 9, 9);
-                }
-            }
-        }
-        else {
-            for (int x2 = 0; x2 < 10; ++x2) {
-                if (s > x2*9) {
-                    int ss = (int) (s - x2*9);
-
-                    if (ss > 8)
-                        DrawableHelper.drawTexture(matrix, x - x2 * 8, hungerBarStaminaYValues[x2], 0, 0, 9, 9, 9, 9);
-                    else
-                        DrawableHelper.drawTexture(matrix, x - x2 * 8 + (9 - ss), hungerBarStaminaYValues[x2], 9 - ss, 0, ss, 9, 9, 9);
-                }
-            }
-        }
-    }
-
-    private int getIconY() {
-        int height = client.getWindow().getScaledHeight();
-        return switch (ClientConfig.iconPosition) {
-            case HOTBAR -> height - 20 + 2;
-            case CROSSHAIR -> height / 2 + 1;
-            case TOP_LEFT_CORNER, TOP_RIGHT_CORNER -> 5;
-            case BOTTOM_LEFT_CORNER, BOTTOM_RIGHT_CORNER -> height - 20;
-        };
-    }
-
-    private int getIconX() {
-        int width = client.getWindow().getScaledWidth();
-        return switch (ClientConfig.iconPosition) {
-            case HOTBAR -> width / 2 + (client.player.getMainArm() == Arm.RIGHT ? 92 : -110) + 2;
-            case CROSSHAIR -> width / 2 + 1;
-            case TOP_LEFT_CORNER, BOTTOM_LEFT_CORNER -> 5;
-            case TOP_RIGHT_CORNER, BOTTOM_RIGHT_CORNER -> width - 20;
-        };
-    }
-
-
     private boolean isSprinting() {
         return client.player.isSprinting();
-    }
-
-    private void setStrolling(boolean strolling) {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeBoolean(strolling);
-        ClientPlayNetworking.send( WalkJogRun.id("strolling"), buf);
     }
 }
