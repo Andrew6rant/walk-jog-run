@@ -29,6 +29,7 @@ import static net.minecraft.server.command.CommandManager.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 public class WalkJogRun implements ModInitializer {
@@ -63,16 +64,42 @@ public class WalkJogRun implements ModInitializer {
 				int max_stamina = player.getHungerManager().getFoodLevel() * ServerConfig.STAMINA_PER_FOOD_LEVEL;
 				int player_stamina = stamina.getOrDefault(player, max_stamina);
 
-				if (player.isSprinting() && !player.isCreative())
-					player_stamina -= ServerConfig.STAMINA_DEPLETION_PER_TICK;
-				else
-					player_stamina += ServerConfig.STAMINA_RECOVERY_WALKING;
-
-				if (player_stamina < 0) {
-					player.setSprinting(false);
-					player.addStatusEffect( new StatusEffectInstance(StatusEffects.SLOWNESS, ServerConfig.STAMINA_EXHAUSTED_SLOWNESS_DURATION_IN_TICKS, 0, false, ServerConfig.STAMINA_EXHAUSTED_SLOWNESS_SHOW_PARTICLES));
+				if (!player.isCreative()) {
+					//System.out.println(player_stamina);
+					int speed = Math.round((player.horizontalSpeed - player.prevHorizontalSpeed) * 10F);
+					int recoveryspeed = 0;
+					int bar_segment = (ServerConfig.STAMINA_PER_FOOD_LEVEL * 20) / 18;
+					//System.out.println(bar_segment);
+					if (player_stamina < (bar_segment * 3)) {
+						recoveryspeed = 1;
+						player.addStatusEffect(new StatusEffectInstance(StatusEffects.HUNGER, 210, 0, false, false));
+						if (player_stamina < bar_segment * 2) {
+							player.addStatusEffect(new StatusEffectInstance(StatusEffects.MINING_FATIGUE, 210, 0, false, false));
+							if (player_stamina < bar_segment) {
+								player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 210, 0, false, false));
+								if(player_stamina <= 0) {
+									player.setSprinting(false);
+									player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 210, 1, false, false));
+								}
+							}
+						}
+					}
+					//if (player.isTouchingWater()) {
+					//	recoveryspeed = new Random().nextInt(2) + 2;
+					//}
+					if (player.isSprinting()) {
+						player_stamina -= 3;
+					} else {
+						switch (speed) {
+							case 0 -> // standing still
+									player_stamina += 2 - recoveryspeed;
+							case 1 -> // walking
+									player_stamina += 1 - recoveryspeed;
+							// running
+							default -> player_stamina -= 2;
+						}
+					}
 				}
-
 				setStamina(player, MathHelper.clamp(player_stamina, 0, max_stamina));
 			}
 		});
