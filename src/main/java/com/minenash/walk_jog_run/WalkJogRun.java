@@ -115,7 +115,8 @@ public class WalkJogRun implements ModInitializer {
 					} else {
 						switch (speed) {
 							case 0 -> // standing still
-									player_stamina += 2 - recoveryspeed;
+									player_stamina += strolling.getOrDefault(player, false) ? ServerConfig.STAMINA_RECOVERY_STROLLING - recoveryspeed : ServerConfig.STAMINA_RECOVERY_WALKING - recoveryspeed;
+									//player_stamina += 2 - recoveryspeed;
 							case 1 -> // walking
 									player_stamina += 1 - recoveryspeed;
 							// running
