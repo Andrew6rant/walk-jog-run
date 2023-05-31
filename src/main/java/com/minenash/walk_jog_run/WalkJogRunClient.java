@@ -33,7 +33,7 @@ public class WalkJogRunClient implements ClientModInitializer {
     boolean wasSprinting = false;
     boolean wasStrolling = false;
 
-    public static int stamina = 200;
+    public static float stamina = 1080;
     private static final Identifier XP_STAMINA_TEXTURE = WalkJogRun.id("textures/gui/stamina_bar.png");
 
     private static final MinecraftClient client = MinecraftClient.getInstance();
@@ -63,7 +63,7 @@ public class WalkJogRunClient implements ClientModInitializer {
         });
 
         ClientPlayNetworking.registerGlobalReceiver(WalkJogRun.id("stamina"), (client1, handler, buf, responseSender) -> {
-            stamina = buf.readInt();
+            stamina = buf.readFloat();
         });
 
         ClientPlayNetworking.registerGlobalReceiver(WalkJogRun.id("sync_config"), (client1, handler, buf, responseSender) -> {

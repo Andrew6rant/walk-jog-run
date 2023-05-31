@@ -9,7 +9,7 @@
   ],
   "client": [
     "ClientPlayerEntityMixin",
-    "InGameHudMixin"
+    "KeyboardInputMixin"
   ],
   "injectors": {
     "defaultRequire": 1

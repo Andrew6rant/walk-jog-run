@@ -34,6 +34,8 @@ import java.util.UUID;
 
 public class WalkJogRun implements ModInitializer {
 
+	public static final Logger LOGGER = LoggerFactory.getLogger("walk-jog-run");
+
 	private static final UUID BASE_SPEED_MODIFIER_ID = UUID.fromString("662A6B8D-DA3E-4C1C-8813-96EA6097278C");
 	private static EntityAttributeModifier BASE_SPEED_MODIFIER;
 
@@ -44,7 +46,7 @@ public class WalkJogRun implements ModInitializer {
 	public static final Map<PlayerEntity, Boolean> strolling = new HashMap<>();
 
 
-	public static final Map<PlayerEntity, Integer> stamina = new HashMap<>();
+	public static final Map<PlayerEntity, Float> stamina = new HashMap<>();
 
 	@Override
 	public void onInitialize() {
@@ -84,17 +86,18 @@ public class WalkJogRun implements ModInitializer {
 					}
 				}
 
-				int max_stamina = player.getHungerManager().getFoodLevel() * ServerConfig.STAMINA_PER_FOOD_LEVEL;
-				int player_stamina = stamina.getOrDefault(player, max_stamina);
+				float max_stamina = player.getHungerManager().getFoodLevel() * 1F * ServerConfig.STAMINA_PER_FOOD_LEVEL;
+				float player_stamina = stamina.getOrDefault(player, max_stamina);
 
 				if (!player.isCreative()) {
 					//System.out.println(player_stamina);
-					int speed = Math.round((player.horizontalSpeed - player.prevHorizontalSpeed) * 10F);
-					int recoveryspeed = 0;
+					float speed = (player.horizontalSpeed - player.prevHorizontalSpeed) * 10F;
+					float recovery_penalty = 0F;
+					float swimming_penalty = 0F;
 					int bar_segment = (ServerConfig.STAMINA_PER_FOOD_LEVEL * 20) / 18;
 					//System.out.println(bar_segment);
 					if (player_stamina < (bar_segment * 3)) {
-						recoveryspeed = 1;
+						recovery_penalty = 1F;
 						player.addStatusEffect(new StatusEffectInstance(StatusEffects.HUNGER, 210, 0, false, false));
 						if (player_stamina < bar_segment * 2) {
 							player.addStatusEffect(new StatusEffectInstance(StatusEffects.MINING_FATIGUE, 210, 0, false, false));
@@ -102,29 +105,38 @@ public class WalkJogRun implements ModInitializer {
 								player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 210, 0, false, false));
 								if(player_stamina <= 0) {
 									player.setSprinting(false);
+									player.setSwimming(false);
+									player.stopFallFlying();
+									player.stopRiding();
+									if(player.isUsingItem() && !player.getActiveItem().isFood()){
+										player.stopUsingItem();
+									}
 									player.addStatusEffect(new StatusEffectInstance(StatusEffects.SLOWNESS, 210, 1, false, false));
 								}
 							}
 						}
 					}
-					//if (player.isTouchingWater()) {
-					//	recoveryspeed = new Random().nextInt(2) + 2;
-					//}
-					if (player.isSprinting()) {
-						player_stamina -= 3;
-					} else {
-						switch (speed) {
-							case 0 -> // standing still
-									player_stamina += strolling.getOrDefault(player, false) ? ServerConfig.STAMINA_RECOVERY_STROLLING - recoveryspeed : ServerConfig.STAMINA_RECOVERY_WALKING - recoveryspeed;
-									//player_stamina += 2 - recoveryspeed;
-							case 1 -> // walking
-									player_stamina += 1 - recoveryspeed;
-							// running
-							default -> player_stamina -= 2;
+					if (player.isTouchingWater()) { // I have to use an if else if chain because I do not want to apply multiple penalties at once
+						swimming_penalty = 1.2F;
+						if (player.isSubmergedInWater()) {
+							swimming_penalty = 1.4F;
 						}
 					}
+					if(player.isFallFlying()) { // using elytra
+						player_stamina -= (speed/10);
+						//LOGGER.info("speed: " + speed+ ", stamina: "+player_stamina);
+					} else if (player.isSprinting()) {
+						//System.out.println("sprinting");
+						player_stamina -= Math.min((speed/1.2) + swimming_penalty, 5F);
+						//LOGGER.info("speed: " + speed+ ", stamina: "+player_stamina+", isfallflying: "+player.isFallFlying());
+					} else {
+						float recovery_speed = strolling.getOrDefault(player, false) ? ServerConfig.STAMINA_RECOVERY_STROLLING : ServerConfig.STAMINA_RECOVERY_WALKING;
+						//LOGGER.info("total:"+(recovery_speed - speed - recovery_penalty - (swimming_penalty * 2))+", recovery_speed: " + recovery_speed+ ", speed: "+speed+", recovery_penalty: "+recovery_penalty+", swimming_penalty: "+swimming_penalty);
+						player_stamina += Math.min(recovery_speed - speed - recovery_penalty - (swimming_penalty * 2), 4F);
+
+					}
 				}
-				setStamina(player, MathHelper.clamp(player_stamina, 0, max_stamina));
+				setStamina(player, MathHelper.clamp(player_stamina, 0F, max_stamina));
 			}
 		});
 
@@ -161,11 +173,10 @@ public class WalkJogRun implements ModInitializer {
 				ServerConfig.BASE_WALKING_SPEED_MODIFIER, EntityAttributeModifier.Operation.MULTIPLY_BASE);
 	}
 
-	private static void setStamina(ServerPlayerEntity player, int staminaP) {
+	private static void setStamina(ServerPlayerEntity player, float staminaP) {
 		stamina.put(player, staminaP);
-
 		PacketByteBuf buf = PacketByteBufs.create();
-		buf.writeInt(staminaP);
+		buf.writeFloat(staminaP);
 		ServerPlayNetworking.send(player, WalkJogRun.id("stamina"), buf);
 	}
 

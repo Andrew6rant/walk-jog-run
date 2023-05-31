@@ -14,13 +14,12 @@ public class ServerConfig {
     public static double SPRINTING_SPEED_MODIFIER = 0.3;
     public static double BASE_WALKING_SPEED_MODIFIER = 0.0;
 
-    public static int STAMINA_PER_FOOD_LEVEL = 54;
-    public static int STAMINA_DEPLETION_PER_TICK = 2;
-    public static int STAMINA_RECOVERY_WALKING = 2;
-    public static int STAMINA_RECOVERY_STROLLING = 3;
+    public static int STAMINA_PER_FOOD_LEVEL = 54; // 1080 total stamina at full hunger, 60 stamina per HUD section (1/18th)
+    public static float STAMINA_DEPLETION_PER_TICK = 2F;
+    public static float STAMINA_RECOVERY_WALKING = 2F;
+    public static float STAMINA_RECOVERY_STROLLING = 3F;
 
-    public static int STAMINA_EXHAUSTED_SLOWNESS_DURATION_IN_TICKS = 100;
-    //public static boolean STAMINA_EXHAUSTED_SLOWNESS_SHOW_PARTICLES = true;
+    public static float ALLOWED_JUMP_SWIM_STAMINA = 65F;
 
     public static String JSON = "";
 
