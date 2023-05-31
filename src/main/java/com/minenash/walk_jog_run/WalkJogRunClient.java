@@ -17,15 +17,21 @@ import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.util.Arm;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
-import java.awt.*;
-
 public class WalkJogRunClient implements ClientModInitializer {
 
+    public static final KeyBinding STROLLING_KEYBIND = keybind();
+
+    private static KeyBinding keybind() {
+        KeyBinding binding = new KeyBinding("walkjogrun.keybind." + "strolling", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, KeyBinding.MOVEMENT_CATEGORY);
+        KeyBindingHelper.registerKeyBinding(binding);
+        return binding;
+    }
+    public static boolean isStrolling = false;
     boolean wasSprinting = false;
+    boolean wasStrolling = false;
 
     public static int stamina = 200;
     private static final Identifier XP_STAMINA_TEXTURE = WalkJogRun.id("textures/gui/stamina_bar.png");
@@ -37,7 +43,7 @@ public class WalkJogRunClient implements ClientModInitializer {
 
         ClientConfig.init("walk-jog-run-client", ClientConfig.class);
 
-        /*
+
         ClientTickEvents.END_WORLD_TICK.register(client -> {
 
             if (isSprinting() != wasSprinting) {
@@ -52,10 +58,9 @@ public class WalkJogRunClient implements ClientModInitializer {
             }
             wasSprinting = isSprinting();
 
-
             while (!isSprinting() && STROLLING_KEYBIND.wasPressed())
                 setStrolling(isStrolling = !isStrolling);
-        }); */
+        });
 
         ClientPlayNetworking.registerGlobalReceiver(WalkJogRun.id("stamina"), (client1, handler, buf, responseSender) -> {
             stamina = buf.readInt();
@@ -96,15 +101,23 @@ public class WalkJogRunClient implements ClientModInitializer {
         int width2 = (int) (1F * 182 / 20 * remainder);
         int width = (int) (1F * (182 - width2) * stamina / max_stamina);
 
+        int v_strolling_offset = isStrolling ? 9 : 3;
+
         // background
         DrawableHelper.drawTexture(matrix, x, l, 0, 0, 182, 3);
         // stamina bar fill
-        DrawableHelper.drawTexture(matrix, x, l, 0, 3, width, 3);
+        DrawableHelper.drawTexture(matrix, x, l, 0, v_strolling_offset, width, 3);
         // disabled area fill (when player is hungry)
         DrawableHelper.drawTexture(matrix, (182 - width2) + x, l, 182 - width2, 6, width2, 3);
     }
 
     private boolean isSprinting() {
         return client.player.isSprinting();
+    }
+
+    private void setStrolling(boolean strolling) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeBoolean(strolling);
+        ClientPlayNetworking.send( WalkJogRun.id("strolling"), buf);
     }
 }
