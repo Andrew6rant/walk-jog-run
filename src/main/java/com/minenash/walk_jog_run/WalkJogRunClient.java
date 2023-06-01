@@ -62,26 +62,19 @@ public class WalkJogRunClient implements ClientModInitializer {
                 setStrolling(isStrolling = !isStrolling);
         });
 
-        ClientPlayNetworking.registerGlobalReceiver(WalkJogRun.id("stamina"), (client1, handler, buf, responseSender) -> {
-            stamina = buf.readFloat();
-        });
+        ClientPlayNetworking.registerGlobalReceiver(WalkJogRun.id("stamina"), (client1, handler, buf, responseSender) -> stamina = buf.readFloat());
 
-        ClientPlayNetworking.registerGlobalReceiver(WalkJogRun.id("sync_config"), (client1, handler, buf, responseSender) -> {
-            ServerConfig.applyConfig(buf.readString());
-        });
+        ClientPlayNetworking.registerGlobalReceiver(WalkJogRun.id("sync_config"), (client1, handler, buf, responseSender) -> ServerConfig.applyConfig(buf.readString()));
 
-        ClientPlayConnectionEvents.DISCONNECT.register(WalkJogRun.id("sync_correct"), (handler, client1) -> {
-            ServerConfig.read();
+        ClientPlayConnectionEvents.DISCONNECT.register(WalkJogRun.id("sync_correct"), (handler, client1) -> ServerConfig.read());
 
-        });
-
-        HudRenderCallback.EVENT.register( WalkJogRun.id("icon_render"), (matrix, tickDelta) -> {
+        HudRenderCallback.EVENT.register(WalkJogRun.id("icon_render"), (matrix, tickDelta) -> {
             matrix.push();
             int max_stamina = client.player.getHungerManager().getFoodLevel() * ServerConfig.STAMINA_PER_FOOD_LEVEL;
 
             RenderSystem.setShader(GameRenderer::getPositionTexProgram);
             RenderSystem.enableDepthTest();
-            // stamina < max_stamina &&
+
             if (!client.player.isCreative()) {
                 renderXPBarStamina(matrix, max_stamina);
             }
